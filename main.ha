@@ -1,11 +1,15 @@
 use fmt;
 
+// TODO: I could do all the token-specific info through type unions, by
+// declaring a bunch of aliases for done, but that kinda sounds like it sucks...
+// You can even make multiple type aliases with one type keyword by just listing
+// each assignment separated by commas.
 type _int = int;
 type _type_name = []u8;
 type _ident = []u8;
 type _str = []u8;
 
-type token_data = (_int | _type_name | _ident | _str);
+type token_data = (_int | _type_name | _ident | _str | done);
 
 type token_kind = enum {
     L_PAREN,     // (
@@ -52,23 +56,27 @@ type token_kind = enum {
     STRING, // "<some characters>"
 };
 
-type token = struct {
-    block_depth: uint,
+type location = struct {
     indentation_chars: uint,
-    // Keep track of the column and the line of the start of this token:
-    start_line: uint,
-    start_col: uint,
+    line: uint,
+    col: uint,
+    pos: uint,
+};
+
+type token = struct {
+    loc: location,
+    block_depth: uint,
     kind: token_kind,
     value: token_data,
 };
 
 type lexer = struct {
-    block_depth: uint,
-    indentation_chars: uint, 
-    // Keep track of the current column and line:
-    start_line: uint,
-    start_col: uint,
-    values: []token,
+    input: str,
+    // Start of current token:
+    start_loc: location,
+    // Current position in file:
+    current_loc: location,
+    tokens: []token,
 };
 
 // Inspired by https://go.dev/talks/2011/lex.slide#1
@@ -80,16 +88,25 @@ type state_fn = nullable *fn(*lexer) state_fn;
 // the for-each iterator syntax because you can't modify the values that way.
 // Either way, I could change the match to casting away nullable (unsafely) or
 // done (safely, with `as`). Alternatively, I could make a function that simply
-// advances a state by virtue of a static variable, but that might be even
-// uglier.
+// advances a state by virtue of a static variable, and use it with the for-each
+// iterator syntax, but that might be even uglier.
 
 export fn main() void = {
     let l = lexer {
-        block_depth = 0,
-        indentation_chars = 0,
-        start_line = 1,
-        start_col = 1,
-        values = [],
+        input = "",
+        start_loc = location {
+            indentation_chars = 0,
+            line = 1,
+            col = 1,
+            pos = 0,
+        },
+        current_loc = location {
+            indentation_chars = 0,
+            line = 1,
+            col = 1,
+            pos = 0,
+        },
+        tokens = [],
     };
 
     for (let state: state_fn = &lex_return; state != null) {
