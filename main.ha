@@ -5,7 +5,7 @@ type _type_name = []u8;
 type _ident = []u8;
 type _str = []u8;
 
-type token_data = (_int | _type_name | _ident | _str | done);
+type token_data = (_int | _type_name | _ident | _str);
 
 type token_kind = enum {
     L_PAREN,     // (
@@ -65,16 +65,14 @@ type token = struct {
 type lexer = struct {
     block_depth: uint,
     indentation_chars: uint, 
-    // Keep track of the column and the line of the start of the most recently
-    // matched token:
+    // Keep track of the current column and line:
     start_line: uint,
     start_col: uint,
-    value: token_data,
+    values: []token,
 };
 
 // Inspired by https://go.dev/talks/2011/lex.slide#1
 type state_fn = nullable *fn(*lexer) state_fn;
-
 
 export fn main() void = {
     let l = lexer {
@@ -82,7 +80,7 @@ export fn main() void = {
         indentation_chars = 0,
         start_line = 1,
         start_col = 1,
-        value = done,
+        values = [],
     };
 
     for (let state: state_fn = &lex_return; state != null) {
