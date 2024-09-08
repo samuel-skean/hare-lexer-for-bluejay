@@ -74,6 +74,15 @@ type lexer = struct {
 // Inspired by https://go.dev/talks/2011/lex.slide#1
 type state_fn = nullable *fn(*lexer) state_fn;
 
+// This is ugly because `nullable` must occur directly before a pointer type -
+// not a type alias of a pointer type. I could use instead make the return type
+// a union with done, making the code a bit prettier, but I still couldn't use
+// the for-each iterator syntax because you can't modify the values that way.
+// Either way, I could change the match to casting away nullable (unsafely) or
+// done (safely, with `as`). Alternatively, I could make a function that simply
+// advances a state by virtue of a static variable, but that might be even
+// uglier.
+
 export fn main() void = {
     let l = lexer {
         block_depth = 0,
